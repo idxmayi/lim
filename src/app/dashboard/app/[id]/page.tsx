@@ -119,6 +119,8 @@ export default async function AppDetailPage({ params }: { params: { id: string }
             ))}
           </CardContent>
         </Card>
+        
+        
       </div>
     </div>
   )

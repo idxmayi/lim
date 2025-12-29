@@ -14,6 +14,7 @@ self.addEventListener('push', function(event) {
     const options = {
       body: data.body,
       icon: data.icon || '/icon.png',
+      image: data.image,
       badge: '/badge.png',
       vibrate: [100, 50, 100],
       data: {
@@ -30,7 +31,16 @@ self.addEventListener('push', function(event) {
 
 self.addEventListener('notificationclick', function(event) {
   event.notification.close();
-  event.waitUntil(
-    clients.openWindow(event.notification.data.url)
-  );
+  const url = event.notification.data && event.notification.data.url
+  event.waitUntil((async () => {
+    if (!url) return
+    const allClients = await clients.matchAll({ type: 'window', includeUncontrolled: true })
+    for (const client of allClients) {
+      if (client.url && client.url.startsWith(url)) {
+        client.focus()
+        return
+      }
+    }
+    await clients.openWindow(url)
+  })())
 });

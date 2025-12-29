@@ -25,6 +25,7 @@ export async function createApp(formData: FormData) {
   const themeColor = formData.get('themeColor') as string
   const description = formData.get('description') as string
   const screenshotsRaw = formData.get('screenshots') as string
+  const initialReviewsRaw = formData.get('initial_reviews') as string
   
   let screenshots: string[] = []
   try {
@@ -34,6 +35,16 @@ export async function createApp(formData: FormData) {
   } catch (e) {
     console.error("Error parsing screenshots", e)
     screenshots = []
+  }
+  
+  let initialReviews: { userName: string; rating: number; comment: string }[] = []
+  try {
+    if (initialReviewsRaw) {
+      initialReviews = JSON.parse(initialReviewsRaw)
+    }
+  } catch (e) {
+    console.error("Error parsing initial reviews", e)
+    initialReviews = []
   }
   
   let user = await prisma.user.findFirst()
@@ -66,22 +77,37 @@ export async function createApp(formData: FormData) {
   })
 
   try {
-    // Dummy reviews to enrich initial UI
-    const samples = [
-      { userName: 'Andi', rating: 5, comment: 'Aplikasinya mantap dan sangat cepat!' },
-      { userName: 'Budi', rating: 4, comment: 'Fungsional, tapi bisa ditingkatkan di UI.' },
-      { userName: 'Citra', rating: 5, comment: 'Sangat membantu pekerjaan saya.' }
-    ]
-    for (const s of samples) {
-      const appBefore = await prisma.app.findUnique({ where: { id: app.id }, select: { averageRating: true, totalReviews: true } })
-      if (!appBefore) break
-      const newTotal = appBefore.totalReviews + 1
-      const newAvg = (appBefore.averageRating * appBefore.totalReviews + s.rating) / newTotal
-      await prisma.review.create({ data: { app_id: app.id, userName: s.userName, rating: s.rating, comment: s.comment } })
-      await prisma.app.update({ where: { id: app.id }, data: { averageRating: newAvg, totalReviews: newTotal } })
+    if (initialReviews.length > 0) {
+      const clamped = initialReviews.map(r => ({
+        userName: r.userName,
+        rating: Math.max(1, Math.min(5, Number(r.rating) || 0)),
+        comment: r.comment
+      }))
+      const total = clamped.reduce((sum, r) => sum + r.rating, 0)
+      for (const r of clamped) {
+        await prisma.review.create({ data: { app_id: app.id, userName: r.userName, rating: r.rating, comment: r.comment } })
+      }
+      await prisma.app.update({
+        where: { id: app.id },
+        data: { averageRating: total / clamped.length, totalReviews: clamped.length }
+      })
+    } else {
+      const samples = [
+        { userName: 'Andi', rating: 5, comment: 'Aplikasinya mantap dan sangat cepat!' },
+        { userName: 'Budi', rating: 4, comment: 'Fungsional, tapi bisa ditingkatkan di UI.' },
+        { userName: 'Citra', rating: 5, comment: 'Sangat membantu pekerjaan saya.' }
+      ]
+      for (const s of samples) {
+        const appBefore = await prisma.app.findUnique({ where: { id: app.id }, select: { averageRating: true, totalReviews: true } })
+        if (!appBefore) break
+        const newTotal = appBefore.totalReviews + 1
+        const newAvg = (appBefore.averageRating * appBefore.totalReviews + s.rating) / newTotal
+        await prisma.review.create({ data: { app_id: app.id, userName: s.userName, rating: s.rating, comment: s.comment } })
+        await prisma.app.update({ where: { id: app.id }, data: { averageRating: newAvg, totalReviews: newTotal } })
+      }
     }
   } catch (e) {
-    console.error('Failed to seed dummy reviews', e)
+    console.error('Failed to save initial reviews', e)
   }
 
   revalidatePath('/dashboard')
@@ -118,6 +144,9 @@ export async function savePushSubscription(appId: string, subscription: { endpoi
   }
 }
 
+export async function subscribeUser(appId: string, subscription: { endpoint: string, keys: { auth: string, p256dh: string } }) {
+  return await savePushSubscription(appId, subscription)
+}
 export async function sendPushNotification(appId: string, title: string, body: string, url: string) {
     const subscribers = await prisma.pushSubscription.findMany({ where: { app_id: appId } })
     

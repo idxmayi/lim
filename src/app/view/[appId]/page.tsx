@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import { getApp } from '@/lib/actions'
+import { getRecentReviews } from '@/lib/actions/app'
 import { notFound } from 'next/navigation'
 import { Metadata } from 'next'
 import InstallButton from './install-button'
@@ -25,6 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ViewAppPage({ params }: Props) {
   const app = await getApp(params.appId)
+  const reviews = await getRecentReviews(params.appId, 3)
   
   if (!app) {
     notFound()
@@ -101,6 +103,41 @@ export default async function ViewAppPage({ params }: Props) {
                     No shots
                  </div>
               )}
+          </div>
+
+          {/* Ratings & reviews */}
+          <div className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold">Ratings & reviews</h2>
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <div className="flex items-center">
+                        {Array.from({ length: 5 }).map((_, i) => {
+                          const filled = i < Math.round(app.averageRating || 0)
+                          return <Star key={i} className={`w-4 h-4 ${filled ? 'text-yellow-500' : 'text-slate-300'}`} />
+                        })}
+                      </div>
+                      <span>{(app.averageRating || 0).toFixed(1)} • {app.totalReviews} reviews</span>
+                  </div>
+              </div>
+              <div className="space-y-4">
+                {reviews.length === 0 && (
+                  <p className="text-sm text-slate-500">Belum ada review.</p>
+                )}
+                {reviews.map((rev) => (
+                  <div key={rev.id} className="border border-slate-200 rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-medium">{rev.userName}</span>
+                      <div className="flex items-center">
+                        {Array.from({ length: 5 }).map((_, i) => {
+                          const filled = i < rev.rating
+                          return <Star key={i} className={`w-3 h-3 ${filled ? 'text-yellow-500' : 'text-slate-300'}`} />
+                        })}
+                      </div>
+                    </div>
+                    <p className="text-sm text-slate-700 whitespace-pre-wrap">{rev.comment}</p>
+                  </div>
+                ))}
+              </div>
           </div>
 
           {/* About */}

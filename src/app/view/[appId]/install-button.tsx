@@ -59,6 +59,9 @@ export default function InstallButton({ appId, vapidKey, themeColor }: { appId: 
                     }
                 } else {
                      setPermissionState(Notification.permission)
+                     if (Notification.permission === 'granted' && vapidKey && !subscription) {
+                         await subscribeToPush(registration)
+                     }
                 }
             } catch (error) {
                 console.log('SW registration failed: ', error)
