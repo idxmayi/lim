@@ -53,3 +53,38 @@ export async function deleteApp(appId: string) {
     return { success: true }
   })
 }
+
+export async function updateCustomDomain(appId: string, domain: string | null) {
+  const value = domain?.trim().toLowerCase() || null
+  if (value) {
+    const exists = await prisma.app.findUnique({ where: { customDomain: value } })
+    if (exists && exists.id !== appId) {
+      throw new Error('Domain sudah dipakai aplikasi lain')
+    }
+  }
+  await prisma.app.update({
+    where: { id: appId },
+    data: { customDomain: value }
+  })
+  revalidatePath(`/dashboard/app/${appId}`)
+  return { success: true }
+}
+
+export async function updateAppSettings(appId: string, data: { customDomain?: string | null; apkUrl?: string | null }) {
+  const domain = data.customDomain?.trim().toLowerCase() || null
+  if (domain) {
+    const exists = await prisma.app.findUnique({ where: { customDomain: domain } })
+    if (exists && exists.id !== appId) {
+      throw new Error('Domain sudah dipakai aplikasi lain')
+    }
+  }
+  await prisma.app.update({
+    where: { id: appId },
+    data: {
+      customDomain: domain,
+      apkUrl: data.apkUrl?.trim() || null
+    }
+  })
+  revalidatePath(`/dashboard/app/${appId}`)
+  return { success: true }
+}

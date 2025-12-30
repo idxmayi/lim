@@ -6,6 +6,7 @@ import { CreateAppDialog } from '@/components/create-app-dialog'
 import { Trash } from 'lucide-react'
 import { DeleteAppButton } from '@/components/delete-app-button'
 import { PushNotificationDialog } from '@/components/push-notification-dialog'
+import { Settings } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,6 +48,12 @@ export default async function DashboardPage() {
             <CardFooter className="flex justify-between">
               <Button asChild>
                 <Link href={`/view/${app.id}`} target="_blank">View App</Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link href={`/dashboard/app/${app.id}/settings`}>
+                  <Settings className="w-4 h-4 mr-2" />
+                  Settings
+                </Link>
               </Button>
               <DeleteAppButton appId={app.id}>
                 <Trash className="w-4 h-4 mr-2" />

@@ -24,6 +24,7 @@ export async function createApp(formData: FormData) {
   const logoUrl = formData.get('logoUrl') as string
   const themeColor = formData.get('themeColor') as string
   const description = formData.get('description') as string
+  const apkUrl = formData.get('apkUrl') as string
   const screenshotsRaw = formData.get('screenshots') as string
   const initialReviewsRaw = formData.get('initial_reviews') as string
   
@@ -71,6 +72,7 @@ export async function createApp(formData: FormData) {
       logoUrl,
       themeColor,
       description,
+      apkUrl,
       screenshots,
       user_id: user.id
     }

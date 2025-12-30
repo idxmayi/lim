@@ -23,6 +23,8 @@ model App {
   target_url  String
   description String?
   themeColor  String?
+  apkUrl      String?
+  customDomain String? @unique
   screenshots String[]
   averageRating Float   @default(0)
   totalReviews  Int     @default(0)

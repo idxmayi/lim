@@ -85,7 +85,21 @@ export default async function ViewAppPage({ params }: Props) {
 
           {/* Install Button */}
           <div className="mb-8">
-              <InstallButton appId={app.id} vapidKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!} themeColor={themeColor} />
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <InstallButton appId={app.id} vapidKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!} themeColor={themeColor} />
+                </div>
+                {app.apkUrl && (
+                  <a
+                    href={app.apkUrl}
+                    target="_blank"
+                    className="w-full h-10 font-medium rounded-lg flex items-center justify-center"
+                    style={{ backgroundColor: themeColor, color: 'white', minWidth: 140 }}
+                  >
+                    Download APK
+                  </a>
+                )}
+              </div>
               <div className="mt-4 flex items-center justify-center gap-2 text-xs text-slate-500">
                 <ShieldCheck className="w-4 h-4" />
                 <span>Verified by Play Protect</span>

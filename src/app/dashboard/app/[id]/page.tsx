@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { getApp, sendPushNotification } from '@/lib/actions'
-import { getRecentReviews } from '@/lib/actions/app'
-import { notFound } from 'next/navigation'
+import { getRecentReviews, updateAppSettings } from '@/lib/actions/app'
+import { notFound, redirect } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,7 +11,7 @@ import { Star } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
-export default async function AppDetailPage({ params }: { params: { id: string } }) {
+export default async function AppDetailPage({ params, searchParams }: { params: { id: string }, searchParams: { [key: string]: string | string[] | undefined } }) {
   const app = await getApp(params.id)
   const reviews = await getRecentReviews(params.id, 3)
   
@@ -27,11 +27,24 @@ export default async function AppDetailPage({ params }: { params: { id: string }
       
       await sendPushNotification(app!.id, title, body, url)
   }
+  
+  
+  
+  async function handleSaveSettings(formData: FormData) {
+    'use server'
+    const domain = (formData.get('custom_domain') as string)?.trim() || ''
+    const apk = (formData.get('apk_url') as string)?.trim() || ''
+    await updateAppSettings(app!.id, { customDomain: domain || null, apkUrl: apk || null })
+    redirect(`/dashboard/app/${app!.id}?saved=1`)
+  }
 
   return (
     <div className="container mx-auto py-10">
       <div className="mb-4">
         <h1 className="text-3xl font-bold">{app.name}</h1>
+        {searchParams?.saved === '1' && (
+          <div className="mt-3 text-sm text-green-600">Berhasil disimpan</div>
+        )}
         <div className="mt-2 flex items-center gap-2">
           <div className="flex items-center">
             {Array.from({ length: 5 }).map((_, i) => {
@@ -66,6 +79,29 @@ export default async function AppDetailPage({ params }: { params: { id: string }
                 </form>
             </CardContent>
         </Card>
+        
+        <Card>
+            <CardHeader>
+                <CardTitle>App Settings</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <form action={handleSaveSettings} className="grid gap-4">
+                    <div className="grid gap-2">
+                        <Label htmlFor="custom_domain">Custom Domain</Label>
+                        <Input id="custom_domain" name="custom_domain" placeholder="domain-anda.com" defaultValue={app.customDomain || ''} />
+                        <p className="text-xs text-slate-500">
+                          Masukkan domain Anda tanpa http://. Pastikan DNS CNAME sudah diarahkan ke server kami.
+                        </p>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="apk_url">APK Download Link</Label>
+                        <Input id="apk_url" name="apk_url" placeholder="https://drive.google.com/..." defaultValue={app.apkUrl || ''} />
+                    </div>
+                    <Button type="submit">Save Changes</Button>
+                </form>
+            </CardContent>
+        </Card>
+        
         
         <Card>
             <CardHeader>

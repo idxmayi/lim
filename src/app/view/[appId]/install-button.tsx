@@ -33,6 +33,8 @@ export default function InstallButton({ appId, vapidKey, themeColor }: { appId: 
   const [isSubscribed, setIsSubscribed] = useState(false)
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [permissionState, setPermissionState] = useState<NotificationPermission>('default')
+  const [isStandalone, setIsStandalone] = useState(false)
+  type NavigatorStandalone = Navigator & { standalone?: boolean }
 
   useEffect(() => {
     async function init() {
@@ -49,19 +51,9 @@ export default function InstallButton({ appId, vapidKey, themeColor }: { appId: 
                 if (subscription) {
                     setIsSubscribed(true)
                 }
-    
-                // Request permission on load as requested
-                if (Notification.permission === 'default') {
-                    const perm = await Notification.requestPermission()
-                    setPermissionState(perm)
-                    if (perm === 'granted' && vapidKey) {
-                         await subscribeToPush(registration)
-                    }
-                } else {
-                     setPermissionState(Notification.permission)
-                     if (Notification.permission === 'granted' && vapidKey && !subscription) {
-                         await subscribeToPush(registration)
-                     }
+                setPermissionState(Notification.permission)
+                if (Notification.permission === 'granted' && vapidKey && !subscription) {
+                    await subscribeToPush(registration)
                 }
             } catch (error) {
                 console.log('SW registration failed: ', error)
@@ -76,6 +68,9 @@ export default function InstallButton({ appId, vapidKey, themeColor }: { appId: 
       setDeferredPrompt(e as BeforeInstallPromptEvent)
     }
     window.addEventListener('beforeinstallprompt', handler)
+    const navigatorStandalone = window.navigator as NavigatorStandalone
+    const standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || !!navigatorStandalone.standalone
+    setIsStandalone(!!standalone)
     return () => window.removeEventListener('beforeinstallprompt', handler)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -107,7 +102,7 @@ export default function InstallButton({ appId, vapidKey, themeColor }: { appId: 
       }
   }
 
-  if (!isSupported) return null // Hide if not supported
+  if (!isSupported || isStandalone) return null // Hide if not supported or already standalone
   
   // Use unused vars to silence linter or just remove them if not needed.
   // Actually, I should use them.
@@ -128,7 +123,7 @@ export default function InstallButton({ appId, vapidKey, themeColor }: { appId: 
           </Button>
       ) : (
           <Button disabled className="w-full h-10 font-medium rounded-lg opacity-50" style={btnStyle}>
-             {isSubscribed ? "Installed & Subscribed" : "Installed"}
+             {isSubscribed ? "Subscribed" : "Install not available"}
           </Button>
       )}
     </div>
